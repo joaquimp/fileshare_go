@@ -1,0 +1,40 @@
+# Binários compilados
+fileShare_go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Arquivos de teste
+test*
+exemplo*
+teste*
+
+# Diretório de uploads (será criado automaticamente)
+uploads/
+
+# Arquivos de configuração local
+.env
+
+# Logs
+*.log
+
+# Arquivos temporários
+*.tmp
+*.temp
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Go
+vendor/
+*.test
+*.prof

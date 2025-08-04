@@ -2,107 +2,86 @@ package main
 
 import (
 	"fmt"
-	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
-	"path/filepath"
-	"sync"
-	"time"
 )
-
-var (
-	storagePath = "./uploads"
-	tokenMap    = make(map[string]string) // token -> filepath
-	mutex       = &sync.Mutex{}
-)
-
-func generateToken(n int) string {
-	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-	b := make([]byte, n)
-	rand.Seed(time.Now().UnixNano())
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
-func uploadHandler(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // 10MB
-	if err != nil {
-		http.Error(w, "Erro ao processar o formulário", http.StatusBadRequest)
-		return
-	}
-
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		http.Error(w, "Erro ao obter o arquivo", http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	token := generateToken(12)
-	filePath := filepath.Join(storagePath, token+"_"+header.Filename)
-
-	out, err := os.Create(filePath)
-	if err != nil {
-		http.Error(w, "Erro ao salvar o arquivo", http.StatusInternalServerError)
-		return
-	}
-	defer out.Close()
-	io.Copy(out, file)
-
-	mutex.Lock()
-	tokenMap[token] = filePath
-	mutex.Unlock()
-
-	publicURL := fmt.Sprintf("http://localhost:8080/file/%s", token)
-	fmt.Fprintf(w, "Arquivo disponível para download: %s\n", publicURL)
-}
-
-func downloadHandler(w http.ResponseWriter, r *http.Request) {
-	token := filepath.Base(r.URL.Path)
-
-	mutex.Lock()
-	filePath, exists := tokenMap[token]
-	if exists {
-		delete(tokenMap, token)
-	}
-	mutex.Unlock()
-
-	if !exists {
-		http.Error(w, "Arquivo não encontrado ou já baixado", http.StatusNotFound)
-		return
-	}
-
-	file, err := os.Open(filePath)
-	if err != nil {
-		http.Error(w, "Erro ao abrir o arquivo", http.StatusInternalServerError)
-		return
-	}
-	defer file.Close()
-
-	// Nome original do arquivo após "_"
-	_, fileName := filepath.Split(filePath)
-	split := filepath.Base(fileName)
-	if i := len(token) + 1; len(split) > i {
-		w.Header().Set("Content-Disposition", "attachment; filename="+split[i:])
-	}
-
-	w.Header().Set("Content-Type", "application/octet-stream")
-	io.Copy(w, file)
-
-	// Apagar o arquivo
-	os.Remove(filePath)
-}
 
 func main() {
-	os.MkdirAll(storagePath, 0755)
+	// Carrega as configurações das variáveis de ambiente
+	config := LoadConfig()
 
-	http.HandleFunc("/upload", uploadHandler)
-	http.HandleFunc("/file/", downloadHandler)
+	// Cria o diretório de uploads se não existir
+	err := os.MkdirAll(config.StoragePath, 0755)
+	if err != nil {
+		log.Fatalf("❌ Erro ao criar diretório de uploads: %v", err)
+	}
 
-	fmt.Println("Servidor iniciado em http://localhost:8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	// Inicializa o storage de arquivos com a configuração
+	storage := NewFileStorage(config.StoragePath, config.MaxFileSize)
+
+	// Inicializa o servidor
+	server := NewServer(storage, config.BaseURL)
+
+	// Configura as rotas
+	http.HandleFunc("/upload", server.uploadHandler)
+	http.HandleFunc("/file/", server.downloadHandler)
+
+	// Adiciona uma rota de status para verificar se o servidor está funcionando
+	http.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		maxSizeMB := float64(config.MaxFileSize) / (1024 * 1024)
+		fmt.Fprintf(w, `{"status": "ok", "service": "file-share-server", "max_file_size_mb": %.1f}`, maxSizeMB)
+	})
+
+	// Rota de instruções para a raiz
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		
+		maxSizeMB := float64(config.MaxFileSize) / (1024 * 1024)
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		fmt.Fprintf(w, `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Share Server</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>🗂️ File Share Server</h1>
+    <p>Servidor de compartilhamento temporário de arquivos</p>
+    
+    <h2>📤 Como fazer upload:</h2>
+    <p>Envie uma requisição POST para <code>/upload</code> com o arquivo no campo <code>file</code></p>
+    <p><strong>Tamanho máximo:</strong> %.1f MB</p>
+    
+    <h3>Exemplo com curl:</h3>
+    <pre><code>curl -F "file=@meuarquivo.txt" %s/upload</code></pre>
+    
+    <h2>📥 Como fazer download:</h2>
+    <p>Use o link retornado após o upload. O arquivo será removido após o primeiro download.</p>
+    
+    <h2>🔍 Status do servidor:</h2>
+    <p><a href="/status">/status</a> - Verificar se o servidor está funcionando</p>
+    
+    <h2>⚙️ Configurações:</h2>
+    <ul>
+        <li><strong>Tamanho máximo:</strong> %.1f MB</li>
+        <li><strong>Diretório:</strong> %s</li>
+        <li><strong>Porta:</strong> %s</li>
+    </ul>
+</body>
+</html>`, maxSizeMB, config.BaseURL, maxSizeMB, config.StoragePath, config.Port)
+	})
+
+	serverAddr := ":" + config.Port
+	fmt.Printf("🚀 Servidor iniciado em %s\n", config.BaseURL)
+	fmt.Printf("📁 Diretório de uploads: %s\n", config.StoragePath)
+	fmt.Printf("📏 Tamanho máximo de arquivo: %.1f MB\n", float64(config.MaxFileSize)/(1024*1024))
+	fmt.Printf("ℹ️  Acesse %s para ver as instruções\n", config.BaseURL)
+	
+	log.Fatal(http.ListenAndServe(serverAddr, nil))
 }
