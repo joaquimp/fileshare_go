@@ -13,6 +13,42 @@ import (
 	"time"
 )
 
+// Mapa de MIME types adicionais para melhor detecção
+var customMimeTypes = map[string]string{
+	".pdf":  "application/pdf",
+	".doc":  "application/msword",
+	".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	".xls":  "application/vnd.ms-excel",
+	".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+	".ppt":  "application/vnd.ms-powerpoint",
+	".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	".zip":  "application/zip",
+	".rar":  "application/x-rar-compressed",
+	".7z":   "application/x-7z-compressed",
+	".tar":  "application/x-tar",
+	".gz":   "application/gzip",
+	".mp3":  "audio/mpeg",
+	".wav":  "audio/wav",
+	".mp4":  "video/mp4",
+	".avi":  "video/x-msvideo",
+	".mov":  "video/quicktime",
+	".jpg":  "image/jpeg",
+	".jpeg": "image/jpeg",
+	".png":  "image/png",
+	".gif":  "image/gif",
+	".bmp":  "image/bmp",
+	".svg":  "image/svg+xml",
+	".webp": "image/webp",
+	".txt":  "text/plain",
+	".html": "text/html",
+	".htm":  "text/html",
+	".css":  "text/css",
+	".js":   "application/javascript",
+	".json": "application/json",
+	".xml":  "application/xml",
+	".csv":  "text/csv",
+}
+
 // Server representa o servidor de compartilhamento de arquivos
 type Server struct {
 	storage *FileStorage
@@ -163,11 +199,10 @@ func (s *Server) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	originalName := extractOriginalFilename(fileName, token)
 
 	// Detecta o MIME type baseado na extensão do arquivo
-	mimeType := mime.TypeByExtension(filepath.Ext(originalName))
-	if mimeType == "" {
-		// Se não conseguir detectar, usa application/octet-stream como fallback
-		mimeType = "application/octet-stream"
-	}
+	mimeType := detectMimeType(originalName)
+	
+	// Garante que o arquivo tenha extensão correta
+	finalFilename := ensureFileExtension(originalName, mimeType)
 
 	// Obtém informações do arquivo
 	fileInfo, err := file.Stat()
@@ -178,8 +213,11 @@ func (s *Server) downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Define headers para download com MIME type correto
 	w.Header().Set("Content-Type", mimeType)
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", originalName))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", finalFilename))
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 
 	// Envia o arquivo para o cliente
 	_, err = io.Copy(w, file)
@@ -193,7 +231,7 @@ func (s *Server) downloadHandler(w http.ResponseWriter, r *http.Request) {
 	os.Remove(filePath)
 
 	// Log da operação de download
-	log.Printf("📥 [DOWNLOAD] Arquivo '%s' (%s) baixado e removido - %s", originalName, mimeType, r.RemoteAddr)
+	log.Printf("📥 [DOWNLOAD] Arquivo '%s' → '%s' (%s) baixado e removido - %s", originalName, finalFilename, mimeType, r.RemoteAddr)
 }
 
 // sanitizeFilename remove caracteres perigosos do nome do arquivo
@@ -214,4 +252,50 @@ func extractOriginalFilename(fileName, token string) string {
 		return fileName[len(prefix):]
 	}
 	return fileName
+}
+
+// detectMimeType detecta o MIME type baseado na extensão do arquivo
+func detectMimeType(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+	
+	// Primeiro verifica no mapa customizado
+	if mimeType, exists := customMimeTypes[ext]; exists {
+		return mimeType
+	}
+	
+	// Depois tenta usar a biblioteca padrão do Go
+	if mimeType := mime.TypeByExtension(ext); mimeType != "" {
+		return mimeType
+	}
+	
+	// Fallback para binário genérico
+	return "application/octet-stream"
+}
+
+// ensureFileExtension garante que o arquivo tenha extensão baseada no MIME type
+func ensureFileExtension(filename, mimeType string) string {
+	ext := filepath.Ext(filename)
+	if ext != "" {
+		return filename // Já tem extensão
+	}
+	
+	// Mapa reverso para adicionar extensão baseada no MIME type
+	mimeToExt := map[string]string{
+		"application/pdf":       ".pdf",
+		"image/jpeg":            ".jpg",
+		"image/png":             ".png",
+		"image/gif":             ".gif",
+		"text/plain":            ".txt",
+		"application/json":      ".json",
+		"video/mp4":             ".mp4",
+		"audio/mpeg":            ".mp3",
+		"application/zip":       ".zip",
+		"application/msword":    ".doc",
+	}
+	
+	if extension, exists := mimeToExt[mimeType]; exists {
+		return filename + extension
+	}
+	
+	return filename // Retorna sem modificação se não encontrar
 }

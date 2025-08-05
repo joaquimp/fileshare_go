@@ -226,6 +226,30 @@ curl -X POST \
   http://seu-servidor.com:8080/upload
 ```
 
+**Resposta JSON:**
+
+```json
+{
+  "success": true,
+  "message": "Arquivo enviado com sucesso",
+  "token": "a1b2c3d4e5f6",
+  "filename": "teste.txt",
+  "download_url": "http://seu-servidor.com:8080/file/a1b2c3d4e5f6"
+}
+```
+
+### Download de Teste
+
+```bash
+curl -O -J http://seu-servidor.com:8080/file/a1b2c3d4e5f6
+```
+
+**Headers de Download:**
+
+- `Content-Type: text/plain` (detectado automaticamente)
+- `Content-Disposition: attachment; filename="teste.txt"`
+- `Content-Length: 1024`
+
 ## 🚨 Troubleshooting
 
 ### Container não inicia

@@ -71,8 +71,32 @@ openssl rand -hex 32
 
 - `http://localhost:8080/` - Interface web com documentação
 - `http://localhost:8080/status` - Status da aplicação
-- `http://localhost:8080/upload` - Endpoint para upload (POST)
-- `http://localhost:8080/file/{token}` - Download de arquivos
+- `http://localhost:8080/upload` - Endpoint para upload (POST) - **Retorna JSON**
+- `http://localhost:8080/file/{token}` - Download de arquivos - **MIME type correto**
+
+## MIME Types Suportados
+
+A aplicação detecta automaticamente o MIME type correto baseado na extensão:
+
+| Extensão | MIME Type | Categoria |
+|----------|-----------|-----------|
+| `.pdf` | `application/pdf` | Documentos |
+| `.doc/.docx` | `application/msword` | Office |
+| `.jpg/.jpeg` | `image/jpeg` | Imagens |
+| `.png` | `image/png` | Imagens |
+| `.mp4` | `video/mp4` | Vídeos |
+| `.mp3` | `audio/mpeg` | Áudio |
+| `.txt` | `text/plain` | Texto |
+| `.json` | `application/json` | Dados |
+| `.zip` | `application/zip` | Compactados |
+| Outros | `application/octet-stream` | Genérico |
+
+**Features do Download:**
+
+- ✅ MIME type correto detectado automaticamente
+- ✅ Extensão adicionada se necessário
+- ✅ Headers apropriados (Content-Length, Cache-Control)
+- ✅ Nome de arquivo preservado
 
 ## Exemplo de Configuração Portainer
 
