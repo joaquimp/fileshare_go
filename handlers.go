@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -85,6 +86,9 @@ func (s *Server) uploadHandler(w http.ResponseWriter, r *http.Request) {
 	// Adiciona o arquivo ao storage
 	s.storage.AddFile(token, filePath)
 
+	// Log da operação de upload
+	log.Printf("📤 [UPLOAD] Arquivo '%s' enviado com token %s - %s", safeFilename, token, r.RemoteAddr)
+
 	// Retorna a URL pública para download
 	publicURL := fmt.Sprintf("%s/file/%s", s.baseURL, token)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -141,6 +145,9 @@ func (s *Server) downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Remove o arquivo após download bem-sucedido
 	os.Remove(filePath)
+	
+	// Log da operação de download
+	log.Printf("📥 [DOWNLOAD] Arquivo '%s' baixado e removido - %s", originalName, r.RemoteAddr)
 }
 
 // sanitizeFilename remove caracteres perigosos do nome do arquivo

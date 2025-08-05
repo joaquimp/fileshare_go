@@ -12,6 +12,8 @@ type Config struct {
 	BaseURL     string // URL base para geração de links
 	StoragePath string // Diretório de armazenamento
 	MaxFileSize int64  // Tamanho máximo de arquivo em bytes
+	APIKey      string // Chave de API para autenticação
+	UserAgent   string // User-Agent permitido (opcional)
 }
 
 // LoadConfig carrega as configurações das variáveis de ambiente com valores padrão
@@ -21,14 +23,23 @@ func LoadConfig() *Config {
 		BaseURL:     getEnv("BASE_URL", "http://localhost:8080"),
 		StoragePath: getEnv("STORAGE_PATH", "./uploads"),
 		MaxFileSize: getEnvAsInt64("MAX_FILE_SIZE_MB", 5) * 1024 * 1024, // Converte MB para bytes
+		APIKey:      getEnv("API_KEY", ""),
+		UserAgent:   getEnv("ALLOWED_USER_AGENT", ""),
 	}
 
 	// Log das configurações carregadas
-	log.Printf("📋 Configurações carregadas:")
-	log.Printf("   Porta: %s", config.Port)
-	log.Printf("   URL Base: %s", config.BaseURL)
-	log.Printf("   Diretório: %s", config.StoragePath)
-	log.Printf("   Tamanho máximo: %.1f MB", float64(config.MaxFileSize)/(1024*1024))
+	log.Printf("� Servidor inicializado:")
+	log.Printf("   📡 Porta: %s", config.Port)
+	log.Printf("   📏 Limite de arquivo: %.1f MB", float64(config.MaxFileSize)/(1024*1024))
+	log.Printf("   🔐 Autenticação: %s", func() string {
+		if config.APIKey != "" {
+			return "Habilitada"
+		}
+		return "❌ Desabilitada"
+	}())
+	if config.UserAgent != "" {
+		log.Printf("   📱 User-Agent: %s", config.UserAgent)
+	}
 
 	return config
 }
@@ -50,4 +61,15 @@ func getEnvAsInt64(key string, defaultValue int64) int64 {
 		log.Printf("⚠️  Valor inválido para %s: %s. Usando valor padrão: %d", key, value, defaultValue)
 	}
 	return defaultValue
+}
+
+// maskAPIKey mascara a API key para logs de segurança
+func maskAPIKey(apiKey string) string {
+	if apiKey == "" {
+		return "❌ NÃO CONFIGURADA"
+	}
+	if len(apiKey) <= 8 {
+		return "****"
+	}
+	return apiKey[:4] + "****" + apiKey[len(apiKey)-4:]
 }

@@ -13,7 +13,7 @@ Um servidor simples em Go para compartilhamento temporário de arquivos com toke
 
 ## 🏗️ Estrutura do Projeto
 
-```
+```text
 fileShare_go/
 ├── main.go         # Ponto de entrada e configuração do servidor
 ├── config.go       # Gerenciamento de configurações via variáveis de ambiente
@@ -43,7 +43,8 @@ curl -F "file=@meuarquivo.txt" http://localhost:8080/upload
 ```
 
 Resposta:
-```
+
+```text
 ✅ Arquivo enviado com sucesso!
 📥 Link para download: http://localhost:8080/file/a1b2c3d4e5f6
 ⚠️  Atenção: O arquivo será removido após o primeiro download.
@@ -112,21 +113,25 @@ cp .env.example .env
 ## 🛠️ Melhorias Implementadas
 
 ### Reorganização do Código
+
 - **Separação de responsabilidades**: Código dividido em arquivos lógicos
 - **Estruturas próprias**: `FileStorage` e `Server` para encapsulamento
 - **Funções utilitárias**: Isoladas em arquivo próprio
 
 ### Segurança Aprimorada
+
 - **Tokens criptográficos**: Substituição do `math/rand` por `crypto/rand`
 - **Sanitização**: Proteção contra nomes de arquivo maliciosos
 - **Validação de métodos**: Verificação de GET/POST
 
 ### Experiência do Usuário
+
 - **Mensagens melhoradas**: Feedback mais claro e amigável
 - **Página de instruções**: Interface web com documentação
 - **Endpoint de status**: Monitoramento da saúde do servidor
 
 ### Robustez
+
 - **Tratamento de erros**: Validações mais abrangentes
 - **Cleanup**: Remoção de arquivos parciais em caso de erro
 - **Thread safety**: Proteção adequada para concorrência
@@ -134,6 +139,7 @@ cp .env.example .env
 ## 🧪 Testando
 
 ### Upload
+
 ```bash
 # Criar um arquivo de teste
 echo "Conteúdo de teste" > teste.txt
@@ -143,11 +149,13 @@ curl -F "file=@teste.txt" http://localhost:8080/upload
 ```
 
 ### Status
+
 ```bash
 curl http://localhost:8080/status
 ```
 
 ### Página principal
+
 Acesse `http://localhost:8080` no navegador para ver as instruções.
 
 ## 📝 TODO / Melhorias Futuras
