@@ -28,6 +28,42 @@ fileShare_go/
 
 ## 🚀 Como Usar
 
+### Opção 1: Docker (Recomendado)
+
+```bash
+# Executar com Docker
+docker run -d \
+  --name fileshare_server \
+  -p 8080:8080 \
+  -e API_KEY=sua_api_key_super_secreta_aqui \
+  -e ALLOWED_USER_AGENT=ADAMA/1.0 \
+  -v $(pwd)/uploads:/app/uploads \
+  ghcr.io/joaquimp/fileshare_go:latest
+```
+
+Para mais detalhes sobre deployment com Docker, veja [DOCKER_DEPLOY.md](./DOCKER_DEPLOY.md).
+
+### Opção 2: Executar localmente
+
+### Configurar autenticação
+
+Primeiro, você precisa configurar a autenticação. Copie o arquivo de exemplo:
+
+```bash
+cp .env.example .env
+```
+
+Edite o arquivo `.env` e configure sua API key:
+
+```bash
+# Gerar uma API key segura
+openssl rand -hex 32
+
+# Adicionar ao arquivo .env
+API_KEY=sua_api_key_gerada_aqui
+ALLOWED_USER_AGENT=ADAMA/1.0
+```
+
 ### Iniciar o servidor
 
 ```bash
@@ -38,8 +74,14 @@ O servidor iniciará em `http://localhost:8080`
 
 ### Fazer upload de um arquivo
 
+⚠️ **Atenção**: Agora é necessário incluir a API key nos headers:
+
 ```bash
-curl -F "file=@meuarquivo.txt" http://localhost:8080/upload
+curl -X POST \
+  -H "Authorization: Bearer sua_api_key_aqui" \
+  -H "User-Agent: ADAMA/1.0" \
+  -F "file=@meuarquivo.txt" \
+  http://localhost:8080/upload
 ```
 
 Resposta:
@@ -60,23 +102,25 @@ curl -O -J http://localhost:8080/file/a1b2c3d4e5f6
 
 ## 📡 Endpoints
 
-| Endpoint | Método | Descrição |
-|----------|--------|-----------|
-| `/` | GET | Página de instruções |
-| `/upload` | POST | Upload de arquivo (campo: `file`) |
-| `/file/{token}` | GET | Download do arquivo |
-| `/status` | GET | Status do servidor |
+| Endpoint | Método | Descrição | Autenticação |
+|----------|--------|-----------|--------------|
+| `/` | GET | Página de instruções | ❌ Pública |
+| `/upload` | POST | Upload de arquivo (campo: `file`) | ✅ API Key |
+| `/file/{token}` | GET | Download do arquivo | ❌ Pública |
+| `/status` | GET | Status do servidor | ❌ Pública |
 
 ## 🔧 Configuração
 
 O servidor pode ser configurado através de variáveis de ambiente:
 
-| Variável | Descrição | Padrão |
-|----------|-----------|--------|
-| `PORT` | Porta do servidor | `8080` |
-| `BASE_URL` | URL base para links de download | `http://localhost:8080` |
-| `STORAGE_PATH` | Diretório de armazenamento | `./uploads` |
-| `MAX_FILE_SIZE_MB` | Tamanho máximo em MB | `5` |
+| Variável | Descrição | Padrão | Obrigatória |
+|----------|-----------|--------|----|
+| `PORT` | Porta do servidor | `8080` | ❌ |
+| `BASE_URL` | URL base para links de download | `http://localhost:8080` | ❌ |
+| `STORAGE_PATH` | Diretório de armazenamento | `./uploads` | ❌ |
+| `MAX_FILE_SIZE_MB` | Tamanho máximo em MB | `5` | ❌ |
+| `API_KEY` | Chave de autenticação | - | ✅ |
+| `ALLOWED_USER_AGENT` | User-Agent permitido | - | ❌ |
 
 ### Exemplo de uso com variáveis de ambiente
 
@@ -85,6 +129,7 @@ O servidor pode ser configurado através de variáveis de ambiente:
 export MAX_FILE_SIZE_MB=10
 export PORT=3000
 export BASE_URL=http://localhost:3000
+export API_KEY=sua_api_key_super_secreta_aqui
 go run .
 ```
 
@@ -105,10 +150,14 @@ cp .env.example .env
 
 ## 🔒 Segurança
 
+- **Autenticação**: API Key obrigatória para uploads
+- **User-Agent**: Validação opcional para maior segurança
 - Tokens gerados com `crypto/rand` (criptograficamente seguros)
 - Sanitização automática de nomes de arquivos
 - Validação de métodos HTTP
 - Remoção automática de arquivos após download
+
+Para configuração detalhada da autenticação, veja [AUTH_GUIDE.md](./AUTH_GUIDE.md).
 
 ## 🛠️ Melhorias Implementadas
 
@@ -144,8 +193,12 @@ cp .env.example .env
 # Criar um arquivo de teste
 echo "Conteúdo de teste" > teste.txt
 
-# Fazer upload
-curl -F "file=@teste.txt" http://localhost:8080/upload
+# Fazer upload (com autenticação)
+curl -X POST \
+  -H "Authorization: Bearer sua_api_key_aqui" \
+  -H "User-Agent: ADAMA/1.0" \
+  -F "file=@teste.txt" \
+  http://localhost:8080/upload
 ```
 
 ### Status
@@ -160,10 +213,11 @@ Acesse `http://localhost:8080` no navegador para ver as instruções.
 
 ## 📝 TODO / Melhorias Futuras
 
-- [ ] Configuração via variáveis de ambiente
-- [ ] Logs estruturados
+- [x] ~~Configuração via variáveis de ambiente~~
+- [x] ~~Autenticação com API Key~~
+- [x] ~~Logs estruturados~~
+- [x] ~~Imagem Docker~~
 - [ ] Métricas e monitoramento
-- [ ] Autenticação opcional
 - [ ] Interface web para upload
 - [ ] Expiração automática de arquivos por tempo
 - [ ] Suporte a HTTPS

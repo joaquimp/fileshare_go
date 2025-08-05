@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  fileshare:
+    image: ghcr.io/joaquimp/fileshare_go:latest
+    container_name: fileshare_server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - BASE_URL=http://localhost:8080
+      - STORAGE_PATH=./uploads
+      - MAX_FILE_SIZE_MB=5
+      - API_KEY=your_secure_api_key_here_change_this
+      - ALLOWED_USER_AGENT=ADAMA/1.0
+    volumes:
+      - ./uploads:/app/uploads
+    networks:
+      - fileshare_network
+
+networks:
+  fileshare_network:
+    driver: bridge
+
+volumes:
+  uploads:

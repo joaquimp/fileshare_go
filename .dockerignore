@@ -1,0 +1,12 @@
+# Ignore arquivos temporários
+*.tmp
+*.log
+
+# Ignore arquivos de configuração local
+.env
+
+# Ignore diretório de uploads (será criado no container)
+uploads/
+
+# Ignore arquivos de build
+main
