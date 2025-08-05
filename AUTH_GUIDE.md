@@ -106,14 +106,35 @@ curl -F "file=@teste.txt" http://localhost:8080/upload
 curl -H "Authorization: Bearer sua_api_key_aqui" \
      -F "file=@teste.txt" \
      http://localhost:8080/upload
-# Retorna: Link de download
+```
+
+**Resposta JSON:**
+```json
+{
+  "success": true,
+  "message": "Arquivo enviado com sucesso",
+  "token": "a90eaf5e0f062350",
+  "filename": "teste.txt",
+  "safe_filename": "teste.txt",
+  "size_bytes": 12,
+  "size_mb": 0.000011,
+  "download_url": "http://localhost:8080/file/a90eaf5e0f062350",
+  "uploaded_at": "2025-08-05T10:30:45Z",
+  "note": "O arquivo será removido após o primeiro download"
+}
 ```
 
 ### ✅ Download (público - sem autenticação)
 
 ```bash
-curl -O -J http://localhost:8080/file/TOKEN_RETORNADO
+curl -O -J http://localhost:8080/file/a90eaf5e0f062350
 ```
+
+O arquivo será baixado com:
+
+- **MIME type correto** baseado na extensão
+- **Nome original** preservado
+- **Headers** apropriados para download
 
 ### 📊 Status do servidor
 

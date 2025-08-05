@@ -84,21 +84,36 @@ curl -X POST \
   http://localhost:8080/upload
 ```
 
-Resposta:
+Resposta JSON:
 
-```text
-✅ Arquivo enviado com sucesso!
-📥 Link para download: http://localhost:8080/file/a1b2c3d4e5f6
-⚠️  Atenção: O arquivo será removido após o primeiro download.
+```json
+{
+  "success": true,
+  "message": "Arquivo enviado com sucesso",
+  "token": "a1b2c3d4e5f6",
+  "filename": "meuarquivo.txt",
+  "safe_filename": "meuarquivo.txt",
+  "size_bytes": 1024,
+  "size_mb": 0.001,
+  "download_url": "http://localhost:8080/file/a1b2c3d4e5f6",
+  "uploaded_at": "2025-08-05T10:30:45Z",
+  "note": "O arquivo será removido após o primeiro download"
+}
 ```
 
 ### Fazer download
 
-Acesse o link retornado ou use curl:
+Use o token retornado no upload:
 
 ```bash
 curl -O -J http://localhost:8080/file/a1b2c3d4e5f6
 ```
+
+O arquivo será servido com:
+
+- **MIME type correto** (detectado pela extensão)
+- **Nome original** preservado
+- **Headers apropriados** para download
 
 ## 📡 Endpoints
 
