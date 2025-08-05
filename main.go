@@ -33,7 +33,7 @@ func main() {
 
 	// Configura as rotas PROTEGIDAS
 	http.HandleFunc("/upload", auth.RequireAuth(server.uploadHandler))
-	
+
 	// Rotas PÚBLICAS (download e status)
 	http.HandleFunc("/file/", server.downloadHandler)
 
@@ -51,7 +51,7 @@ func main() {
 			http.NotFound(w, r)
 			return
 		}
-		
+
 		maxSizeMB := float64(config.MaxFileSize) / (1024 * 1024)
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprintf(w, `
@@ -105,6 +105,6 @@ func main() {
 		fmt.Printf("📱 Restrito ao User-Agent: %s\n", config.UserAgent)
 	}
 	fmt.Printf("ℹ️  Acesse %s para instruções\n", config.BaseURL)
-	
+
 	log.Fatal(http.ListenAndServe(serverAddr, nil))
 }

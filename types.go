@@ -4,10 +4,10 @@ import "sync"
 
 // FileStorage gerencia o armazenamento de arquivos temporários
 type FileStorage struct {
-	tokenMap     map[string]string // Mapeia tokens para caminhos de arquivo
-	mutex        *sync.Mutex       // Protege acesso concorrente ao mapa
-	storagePath  string            // Diretório onde os arquivos são armazenados
-	maxFileSize  int64             // Tamanho máximo de arquivo em bytes
+	tokenMap    map[string]string // Mapeia tokens para caminhos de arquivo
+	mutex       *sync.Mutex       // Protege acesso concorrente ao mapa
+	storagePath string            // Diretório onde os arquivos são armazenados
+	maxFileSize int64             // Tamanho máximo de arquivo em bytes
 }
 
 // NewFileStorage cria uma nova instância do gerenciador de arquivos
@@ -32,7 +32,7 @@ func (fs *FileStorage) AddFile(token, filePath string) {
 func (fs *FileStorage) GetAndRemoveFile(token string) (string, bool) {
 	fs.mutex.Lock()
 	defer fs.mutex.Unlock()
-	
+
 	filePath, exists := fs.tokenMap[token]
 	if exists {
 		delete(fs.tokenMap, token)

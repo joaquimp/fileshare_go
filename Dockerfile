@@ -1,8 +1,8 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.21-alpine3.19 AS builder
 
-# Instalar certificados CA e git
-RUN apk --no-cache add ca-certificates git
+# Atualizar pacotes e instalar certificados CA e git
+RUN apk update && apk upgrade && apk --no-cache add ca-certificates git
 
 # Definir diretório de trabalho
 WORKDIR /app
@@ -16,14 +16,17 @@ RUN go mod download
 # Copiar código fonte
 COPY . .
 
-# Build da aplicação
+# Build da aplicação principal
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
-# Production stage
-FROM alpine:latest
+# Build do healthcheck
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o healthcheck healthcheck.go
 
-# Instalar certificados CA
-RUN apk --no-cache add ca-certificates tzdata
+# Production stage
+FROM alpine:3.19
+
+# Atualizar pacotes e instalar certificados CA
+RUN apk update && apk upgrade && apk --no-cache add ca-certificates tzdata
 
 # Criar usuário não-root
 RUN addgroup -g 1001 appgroup && \
@@ -32,8 +35,9 @@ RUN addgroup -g 1001 appgroup && \
 # Definir diretório de trabalho
 WORKDIR /app
 
-# Copiar binário da aplicação do builder stage
+# Copiar binários da aplicação do builder stage
 COPY --from=builder /app/main .
+COPY --from=builder /app/healthcheck .
 
 # Criar diretório uploads e dar permissões
 RUN mkdir -p ./uploads && \
@@ -44,6 +48,10 @@ USER appuser
 
 # Expor porta
 EXPOSE 8080
+
+# Adicionar health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD ./healthcheck
 
 # Comando para executar a aplicação
 CMD ["./main"]

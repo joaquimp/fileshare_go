@@ -145,7 +145,7 @@ func (s *Server) downloadHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Remove o arquivo após download bem-sucedido
 	os.Remove(filePath)
-	
+
 	// Log da operação de download
 	log.Printf("📥 [DOWNLOAD] Arquivo '%s' baixado e removido - %s", originalName, r.RemoteAddr)
 }
